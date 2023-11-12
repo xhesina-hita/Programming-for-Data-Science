@@ -1,0 +1,785 @@
+---
+title: "Project- Solutions for finding anagrams"
+author: "Xhesina Hita Davide Gotti"
+date: "2023-10-15"
+output:
+  pdf_document: default
+  html_document: default
+University: Lund University
+---
+
+### Introduction: 
+
+In this project, we focused on identifying anagrams, which are two strings that are composed of the same characters, although in a different order. For instance, 'heart' and 'earth' are anagrams of each other. To keep things simple we assume that the strings consist only of lowercase alphabetical characters.
+
+Anagrams can be useful in modern day context, we give some examples:
+
+- Word Games: anagrams are used in "Scrabble" game and crosswords to create new words by rearranging the available letters.
+- Cybersecurity: Anagrams can be used to encrypt data or protect passwords. For instance, a word or phrase can be jumbled to create a secure password.
+- Marketing and Advertising: Anagrams can be used in marketing and advertising campaigns to create slogans or messages that capture consumer attention and pique curiosity.
+- Cryptography: Anagrams can be used in cryptography to conceal the meaning of a message. By rearranging the letters in a specific way, a message can be made unintelligible until it is deciphered using a key.
+
+Our objective is to create a Boolean function that, given two strings, returns True if they are anagrams of each other. We find four distinct solutions for finding anagrams in both R and Python, with the ultimate goal of identifying the algorithm that minimizes execution time.
+
+To measure the time efficiency of the algorithm from a theoretical point of view, we will employ the Big O notation.
+
+Big O notation, also known as "order of" notation, is a mathematical framework used in computer science and mathematics to assess algorithm efficiency and performance. It quantifies how an algorithm's resource usage and run time increase with larger input data. It provides an upper limit for an algorithm's time complexity, often expressed in simplified mathematical terms like O(n), O(log n), or O(n^2). This allows us to classify algorithms into different efficiency categories and assess their performance as input size varies (length of the word).
+A few examples of how the Big O notation works are the following:
+
+* An algorithm with O(1) complexity means its performance remains constant, regardless of the input size. It is considered highly efficient.
+
+* An algorithm with O(log n) complexity suggests that its performance grows slowly as the input size increases. These algorithms are typically very efficient for large data-sets.
+
+* An algorithm with O(n) complexity signifies that its performance is directly proportional to the input size. It is considered a linear relationship, and efficiency decreases as data grows.
+
+* An algorithm with O(n^2) complexity denotes a quadratic relationship, where performance degrades significantly as the input size increases.
+
+```{python}
+import timeit 
+import random
+import time
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+```
+
+#### Define the words
+
+```{python}
+
+#we create a dictionary which is composed of keys that correspond to words and values that correspond to a list of four words of which two are anagrams of the key and two are not. Later we will use this in such a way as to randomly choose a key and one of its corresponding values.
+
+anagrams_dict = {
+    "wolf": ["flow", "fowl", "fawl", "fill"],
+    "melon": ["lemon", "monle", "mmonl", "mellon"],
+    "study": ["dusty", "tydus", "dstud", "tree"],
+    "trainers": ["strainer", "retrains", "straiine", "straaner"],
+    "tester": ["tetras", "treats", "ttteas", "forest"],
+    "owns": ["snow", "sown", "saun", "weird"],
+    "notes": ["tones", "stone", "tunna", "notee"],
+    "pastel": ["petals", "staple", "cluster", "panel"],
+    "loops": ["pools", "sloop", "spoon", "ice"],
+    "dater": ["rated", "trade", "tradee", "road"],
+    "apple": ["papel", "appel", "plapea", "sppale"],
+    "charm": ["march", "char", "hcram", "crahm"],
+    "listen": ["silent", "slinet", "islent", "lsteni"],
+    "bat": ["tab", "tba", "abb", "bta"],
+    "post": ["stop", "spot", "tops", "tpos"],
+    "dream": ["madre", "mared", "amerd", "radem"],
+    "alive": ["vilea", "ealiv", "elvia", "veial"],
+    "champ": ["chmap", "phamc", "capmh", "hpcam"],
+    "green": ["genre", "reeng", "egern", "renge"],
+    "stone": ["tones", "stnoe", "esont", "setno"]
+}
+
+```
+
+```{r}
+library(microbenchmark)
+```
+
+```{r}
+
+#we create a list which in the first element we have a word and the second element is a vector with four word (two anagrams and two not).
+#This will be used to randomly choose a word and a corresponding anagram or not.
+
+anagrams_dict <- list(
+  "wolf" = c("flow", "fowl", "fawl", "fill"),
+  "melon" = c("lemon", "monle", "mmonl", "mellon"),
+  "study" = c("dusty", "tydus", "dstud", "tree"),
+  "trainers" = c("strainer", "retrains", "straiine", "straaner"),
+  "tester" = c("tetras", "treats", "ttteas", "forest"),
+  "owns" = c("snow", "sown", "saun", "weird"),
+  "notes" = c("tones", "stone", "tunna", "notee"),
+  "pastel" = c("petals", "staple", "cluster", "panel"),
+  "loops" = c("pools", "sloop", "spoon", "ice"),
+  "dater" = c("rated", "trade", "tradee", "road"),
+  "apple" = c("papel", "appel", "plipea", "sppule"),
+  "charm" = c("march", "char", "hciram", "crahm"),
+  "listen" = c("silent", "slinet", "uslent", "listeni"),
+  "bat" = c("tab", "tba", "abb", "dta"),
+  "post" = c("stop", "spot", "toops", "tbos"),
+  "dream" = c("madre", "mared", "aeerd", "ridem"),
+  "alive" = c("vilea", "ealiv", "ilvia", "vaial"),
+  "champ" = c("chmap", "phamc", "cammh", "hbcam"),
+  "green" = c("genre", "rieng", "egern", "ringe"),
+  "stone" = c("tones", "stnue", "esiont", "setno")
+)
+
+#anagrams_dict
+
+```
+
+# The algorithms 
+
+## Solution 1: Finding matches
+
+The first algorithm that we use aims to verify the presence if each character found in the first string also in the second string, to ensure that, for instance,  if the first string contains two 'a's, the second string should likewise contain exactly two 'a' s. This requirement means that every letter must appear with the same frequency in both strings. When we identify a corresponding 'a' in the second string, we mark it to prevent it from being counted in subsequent checks. This is achieved by assigning it the value None. However, since Python strings are immutable, we begin by converting the string into a list of characters.
+
+```{python}
+
+def anagramSolution1(x1,x2):
+    if len(x1)!= len(x2): #if not the same length then not anagrams.
+      return False
+    alist = list(x2)
+
+    pos1 = 0
+    stillOK = True
+
+    while pos1 < len(x1) and stillOK:
+        pos2 = 0
+        found = False
+        while pos2 < len(alist) and not found:
+            if x1[pos1] == alist[pos2]:
+                found = True
+            else:
+                pos2 = pos2 + 1
+
+        if found:
+            alist[pos2] = None #the list is necessary to mark with None, we can't do it with strings.
+        else:                        
+            stillOK = False #doesn't enter the while loop
+
+        pos1 = pos1 + 1
+
+    return stillOK
+
+
+```
+
+We initialize two pointers, pos1 and pos2, both starting at 0. Additionally, we create a Boolean variable, stillOK, initially set to True, which helps us keep track of whether the strings under consideration can potentially be anagrams. We then enter a while loop, where we iterate through the characters in the first input string, x1, controlled by the pos1 pointer. During this iteration, we check if these characters are still eligible to be part of an anagram.
+
+For each character in x1, we enter a nested while loop, iterating through the characters in the alist(created from the second input strings2), controlled by the pos2 pointer. In this loop, we diligently search for a match. When we do find a match, we set the found variable to True, signifying the discovery of a character that corresponds in alist.
+
+Upon finding a match, we proceed to mark this character in alist as used by assigning it the value None. This crucial step ensures that the same character will not be matched again when checking against subsequent characters in x1.
+
+However, if we fail to find a match in the nested loop for the current character in x1, we take action by setting the stillOK variable to False`, which clearly indicates that these two strings cannot be anagrams. This occurrence leads to the termination of the loop for efficiency.
+
+With each iteration, we increment the pos1 pointer, moving on to the next character in x1. We continue this process until we've assessed all characters in x1, or until a mismatch prompts us to terminate early.
+
+Ultimately, our function concludes by returning the value of the stillOK variable. If it holds True, we affirm that the two input strings are indeed anagrams; otherwise, they are not.
+
+It's important to note that this algorithm has a time complexity of O(n^2) because of the while nested loops (for every element in x1 (n) we check each element in x2 (n), so in worst case the number of iterations is n*n. This means that its efficiency decreases as the length of the input strings increases, making it less suitable for very long strings.
+
+```{r}
+
+anagramSolution1 <- function(x1, x2) {
+  
+  alist2 <- strsplit(x2, NULL)[[1]] #the string is split into individual characters (we use NULL), and it create a list.
+  alist1 <- strsplit(x1, NULL)[[1]]
+  
+  if (length(alist1)!= length(alist2)) return (FALSE)
+  
+  pos1 <- 1
+  stillOK <- TRUE
+  
+  while (pos1 <= length(alist1) && stillOK) {
+    pos2 <- 1
+    found <- FALSE
+    
+    while (pos2 <= length(alist2) && !found) {
+      if (alist1[pos1] == alist2[pos2]) {
+        found <- TRUE
+      } else {
+        pos2 <- pos2 + 1
+      }
+    }
+    
+    if (found) {
+      alist2[pos2] <- "" #we eliminate the character 
+    } else {
+      stillOK <- FALSE #doesn't enter the while loop
+    }
+    
+    pos1 <- pos1 + 1
+  }
+  
+  return(stillOK)
+}
+
+
+
+```
+
+
+## Solution 2: Sort and Compare
+
+This second method focuses on the fact that for two strings x1 and x2 to be anagrams, they must contain the same characters, irrespective of their order. In Python, we can achieve this by utilizing the sort function, which is applicable to lists.
+
+```{python}
+
+def anagramSolution2(x1,x2):
+    if len(x1)!= len(x2):
+      return False
+
+    alist1 = list(x1)
+    alist2 = list(x2)
+
+    alist1.sort() #sorted in alphabetical order
+    alist2.sort()
+    
+    return alist1==alist2
+
+```
+
+We created alist1 and alist2 by converting the input strings, x1 and x2, into lists of characters to facilitate character manipulation since strings are immutable in Python. After converting these lists, we sorted alist1 and alist2 in alphabetical order, simplifying character comparison and ensuring that they match in the same order in both strings. If the two list are the same then they are anagrams.
+
+The sorting process of "alist1" and "alist2" dominates when we focus on time complexity analysis. The time complexity of sorting a list of n elements using Python's built-in sort method is typically O(n log n).
+We know that because, doing our research, we found out that sorting a list of n elements using Python's built-in sort method primarily depends on the Timsort algorithm, which is a hybrid sorting algorithm that combines elements of merge sort (the divide and conquer that we saw in class) and insertion sort, that builds a sorted portion of the list one element at a time.
+As a result, the overall time complexity of this algorithm is O(n log n) due to the sorting operation.
+
+```{r}
+
+anagramSolution2 <- function(x1, x2) {
+  
+  alist2 <- strsplit(x2, NULL)[[1]] #the string is split into individual characters (we use NULL), and it create a list.
+  alist1 <- strsplit(x1, NULL)[[1]]
+  if (length(alist1)!= length(alist2)) return (FALSE)
+
+  alist1 <- sort(alist1)
+  alist2 <- sort(alist2)
+
+  return (sum(alist1==alist2)==length(alist1))
+}
+
+```
+
+
+## Solution 3: Permutations
+
+We also thought about checking all the possible anagrams for a given world x1 and then check if one of those anagrams is equal to x2.
+We generate all the strings using characters from x1, the generated strings are the same length as x1 and have the same number of characters for each character, then we control if one of these new strings are equal to x2.
+
+This process is very slow since when generating all possible strings from x1 which has a length of n, there are n possible choices for the first character, n-1 for the second character, n-2 for the third, and so on. The total number of candidate strings is the product of all these possibilities, which is n!.
+The n! grows faster than 2^n as n becomes large. For instance, if x1 consists of 10 characters, there could be 10! possible strings. If it took 1 second to generate each string, it would still take approximately 3628800 seconds (1008 hours).
+
+The key idea here is that the function breaks down the task of generating permutations of a string into smaller subproblems. It starts with one character as the first character of the permutation, then recursively generates permutations for the remaining characters. This process continues for each character, creating a tree of recursive calls.
+
+```{python}
+
+def check_anagram(x1, x2):
+    if len(x1)!= len(x2): #if not the same length then not anagrams.
+        return False
+    def generate_anagrams(x1):
+        if len(x1) <= 1:
+            return [x1]
+
+        anagrams = []
+        for i in range(len(x1)):
+            first = x1[i]
+            rest = x1[:i] + x1[i+1:]
+            for p in generate_anagrams(rest):
+                anagrams.append(first + p)
+
+        return anagrams
+
+    anagrams = generate_anagrams(x1)
+    logical = False
+    for anagram in anagrams:
+        if x2 == anagram:
+            logical = True
+            break
+
+    return logical
+
+
+```
+
+We coded the algorithm as follows: We defined a function called check_anagram that takes two arguments, x1 and x2. Within this function, we also defined an inner function, generate_anagrams, which is responsible for generating all possible anagrams of a given string, x1. The generate_anagrams function checks if the length of the input string x1 is less than or equal to 1, and if so, it returns a list containing the input string as there are no further anagrams to generate. It employs a loop to iterate through the characters of x1, extracting the current character and the rest of the string for further anagram generation. Through recursive calls, it generates anagrams for the remaining characters and appends the first character to create new anagrams. The generate_anagrams function returns a list of anagrams once all characters have been processed. In the check_anagram function, it calls generate_anagrams with x1 as input, initializes a Boolean variable logical as False, iterates through the list of generated anagrams, checks if they match x2, and sets logical to True if a matching anagram is found. The check_anagram function returns logical, indicating whether x2 is an anagram of x1.
+
+Regarding time complexity, there are two main operations that impact on the execution time:
+
+Generating Permutations: The number of permutations of a string of length n is n!. In this algorithm, we recursively generate all possible permutations of the input string ‘x1’. Therefore, the time complexity for generating permutations is O(n!).
+
+Checking for a Match: After generating all possible permutations, we check if any of them match the input string ‘x2’. Checking for a match requires comparing each permutation (there can be n! of them) with ‘x2’. The worst-case time complexity for this step is O(n! * n) since, in the worst case, we may need to compare all n! permutations with ‘x2’.
+
+Combining both steps, the overall time complexity of this Permutation algorithm is O(n! * n), which is a factorial time complexity. We see that factorial time complexity grows extremely fast, making this algorithm impractical for large input strings.
+
+```{r}
+
+check_anagram <- function(x1, x2) {
+  
+  alist2 <- strsplit(x2, NULL)[[1]] #the string is split into individual characters (we use NULL), and it create a list.
+  alist1 <- strsplit(x1, NULL)[[1]]
+  if (length(alist1)!= length(alist2)) return (FALSE)
+  
+  generate_anagrams <- function(alist1) {
+    if (length(alist1) <= 1) return(alist1)
+
+    anagrams <- c()
+    for (i in 1:length(alist1)) {
+      first <- alist1[i]
+      rest <- alist1[-i]
+      
+      for (p in generate_anagrams(rest)) {
+        anagrams <- c(anagrams, paste(first, p, sep = ""))
+      }
+    }
+
+    return(anagrams)
+  }
+
+  anagrams <- generate_anagrams(alist1)
+  logical <- FALSE
+  for (anagram in anagrams) {
+    if (x2 == anagram) {
+      logical <- TRUE
+      break
+    }
+  }
+
+  return(logical)
+}
+
+
+```
+
+
+
+## Solution 4: Count and Compare
+
+Another way to check if x2 is the anagram of x1 is to check if they have the same number for each character, the same number of "a", of "b", and so on.
+We know that all the possible character are 26, we can use a list/vector of length 26 (a position for each character). Every time we scroll through the string we find a character, we increment the corresponding counter. In the end, if the two frequency vectors are equal, then the two strings are an anagram of each other.
+
+
+```{python}
+
+#knowing that with ord() the character are ordered
+#ord("a")
+#ord("b")
+#ord("c")
+
+def anagramSolution4(x1,x2):
+  if len(x1)!= len(x2):
+    return False
+  
+  
+  c1 = [0]*26 
+  c2 = [0]*26
+
+  for char in x1:
+        pos = ord(char) - ord('a') 
+        c1[pos] += 1
+
+  for char in x2:
+        pos = ord(char) - ord('a')
+        c2[pos] += 1
+
+  return (c1== c2)
+
+
+```
+
+We check if the length of the strings are the same, if not we know that they are not anagrams. We create two list of length 26 (the numbers of the characters) with values zero. Then for every character in the first string we count the frequencies by using the ord() function. This function given the characters returns an integer representing the Unicode code of the character. This code is consecutively increasing starting from "a" for the 26 characters. Then we evaluate if the two list are the same, if yes then they are anagrams.
+The number of iteration is linear and is O(n).
+
+
+```{r}
+anagramSolution4 <- function(x1, x2) {
+  
+  alist2 <- strsplit(x2, NULL)[[1]] #the string is split into individual characters (we use NULL), and it create a list.
+  alist1 <- strsplit(x1, NULL)[[1]]
+  if (length(alist1)!= length(alist2)) return (FALSE)
+  
+  c1 <- rep(0, 26)
+  c2 <- rep(0, 26)
+  
+  for (char in alist1) {
+    pos <- utf8ToInt(char) - utf8ToInt("a")
+    c1[pos + 1] <- c1[pos + 1] + 1
+  }
+
+  for (char in alist2) {
+    pos <- utf8ToInt(char) - utf8ToInt("a")
+    c2[pos + 1] <- c2[pos + 1] + 1
+  }
+
+  return (sum(c1==c2)==26) #all the 26 frequencies should be the same
+}
+
+
+```
+
+
+## Time control
+
+Performing the algorithms and checking the time for different length of the word.
+**note** In this analysis the third solution is not reported as with just a length of 7 it takes around 12 seconds.
+
+```{python}
+x1_7 ="xhesina" #len=7
+x2_7="sinaxhe" #len=7
+
+print(timeit.timeit('check_anagram(x1_7, x2_7)', globals=globals(), number=1000))
+#it takes 12 seconds only for the string with length 7
+
+```
+
+```{python}
+
+y1_7=print(timeit.timeit('anagramSolution1(x1_7, x2_7)', globals=globals(), number=1000))
+y2_7=print(timeit.timeit('anagramSolution2(x1_7, x2_7)', globals=globals(), number=1000))
+y4_7=print(timeit.timeit('anagramSolution4(x1_7, x2_7)', globals=globals(), number=1000))
+
+x1_14="xhesinadavideq"
+x2_14="davideqxhesina"
+
+y1_14=print(timeit.timeit('anagramSolution1(x1_14, x2_14)', globals=globals(), number=1000))
+y2_14=print(timeit.timeit('anagramSolution2(x1_14, x2_14)', globals=globals(), number=1000))
+y4_14=print(timeit.timeit('anagramSolution4(x1_14, x2_14)', globals=globals(), number=1000))
+
+
+x1_36="xhesinahitadavidegottilunduniversity" 
+x2_36="lunduniversitydavidegottixhesinahita" 
+
+y1_36=print(timeit.timeit('anagramSolution1(x1_36, x2_36)', globals=globals(), number=1000))
+y2_36=print(timeit.timeit('anagramSolution2(x1_36, x2_36)', globals=globals(), number=1000))
+y4_36=print(timeit.timeit('anagramSolution4(x1_36, x2_36)', globals=globals(), number=1000))
+
+x1_96="studentsxhesinahitadavidegottierasmuslunduniversityprogrammingfordatasciencelaboratorycomputer"
+x2_96="computerlaboratoryprogrammingfordatalunduniversitydavidegottixhesinahitasciencestudentserasmus"
+
+y1_96=print(timeit.timeit('anagramSolution1(x1_96, x2_96)', globals=globals(), number=1000))
+y2_96=print(timeit.timeit('anagramSolution2(x1_96, x2_96)', globals=globals(), number=1000))
+y4_96=print(timeit.timeit('anagramSolution4(x1_96, x2_96)', globals=globals(), number=1000))
+
+x1_127="hitastudentsxhesinahitadavidegottierasmuslunduniversityprogrammingfordatasciencelaboratorycomputerdavidexhesinaprogramminggotti"
+x2_127="gottidavidexhesinaprogrammingcomputerlaboratoryprogrammingfordatalunduniversitydavidegottixhesinahitasciencestudentserasmushita"
+
+y1_127=print(timeit.timeit('anagramSolution1(x1_127, x2_127)', globals=globals(), number=1000))
+y2_127=print(timeit.timeit('anagramSolution2(x1_127, x2_127)', globals=globals(), number=1000))
+y4_127=print(timeit.timeit('anagramSolution4(x1_127, x2_127)', globals=globals(), number=1000))
+
+# Define the input data
+x_values = [7, 14, 36, 96, 127]
+
+# Timing data for anagramSolution1
+y1_values = []
+y1_values.append(timeit.timeit('anagramSolution1(x1_7, x2_7)', globals=globals(), number=1000))
+y1_values.append(timeit.timeit('anagramSolution1(x1_14, x2_14)', globals=globals(), number=1000))
+y1_values.append(timeit.timeit('anagramSolution1(x1_36, x2_36)', globals=globals(), number=1000))
+y1_values.append(timeit.timeit('anagramSolution1(x1_96, x2_96)', globals=globals(), number=1000))
+y1_values.append(timeit.timeit('anagramSolution1(x1_127, x2_127)', globals=globals(), number=1000))
+
+# Timing data for anagramSolution2
+y2_values = []
+y2_values.append(timeit.timeit('anagramSolution2(x1_7, x2_7)', globals=globals(), number=1000))
+y2_values.append(timeit.timeit('anagramSolution2(x1_14, x2_14)', globals=globals(), number=1000))
+y2_values.append(timeit.timeit('anagramSolution2(x1_36, x2_36)', globals=globals(), number=1000))
+y2_values.append(timeit.timeit('anagramSolution2(x1_96, x2_96)', globals=globals(), number=1000))
+y2_values.append(timeit.timeit('anagramSolution2(x1_127, x2_127)', globals=globals(), number=1000))
+
+# Timing data for anagramSolution4
+y4_values = []
+y4_values.append(timeit.timeit('anagramSolution4(x1_7, x2_7)', globals=globals(), number=1000))
+y4_values.append(timeit.timeit('anagramSolution4(x1_14, x2_14)', globals=globals(), number=1000))
+y4_values.append(timeit.timeit('anagramSolution4(x1_36, x2_36)', globals=globals(), number=1000))
+y4_values.append(timeit.timeit('anagramSolution4(x1_96, x2_96)', globals=globals(), number=1000))
+y4_values.append(timeit.timeit('anagramSolution4(x1_127, x2_127)', globals=globals(), number=1000))
+
+# Create the plot
+plt.plot(x_values, y1_values, label='anagramSolution1', color="darkorange")
+plt.plot(x_values, y2_values, label='anagramSolution2', color="royalblue")
+plt.plot(x_values, y4_values, label='anagramSolution4', color="limegreen")
+
+# Add labels and legend
+plt.xlabel('Input Length (x)')
+plt.ylabel('Time (s)')
+plt.legend()
+
+# Show the plot
+plt.show()
+
+
+```
+
+```{python}
+#plot 2
+plt.plot(x_values, y2_values, label='anagramSolution2', color="royalblue")
+plt.plot(x_values, y4_values, label='anagramSolution4', color="limegreen")
+
+# Add labels and legend
+plt.xlabel('Input Length (x)')
+plt.ylabel('Time (s)')
+plt.legend()
+
+# Show the plot
+plt.show()
+
+```
+
+```{python}
+
+data = {'length': x_values, 'anagramSolution1': y1_values, 'anagramSolution2': y2_values, 'anagramSolution4': y4_values}
+df = pd.DataFrame(data)
+print(df)
+
+```
+
+The execution time of the first algorithm is slower than the second algorithm, which aligns with our expectations based on their respective Big O notations. The first algorithm, 'finding matches,' exhibits a Big O notation of O(n^2), while the second algorithm has a more efficient O(n log n) complexity, and the fourth algorithm follows a linear O(n) notation. These observations are clearly reflected in the plotted results. Interestingly, despite theoretical expectations, the second algorithm demonstrates shorter execution times compared to the fourth algorithm. We noticed that when we run the code, sometimes the line associated with solution 2 grows as if it were to cross the green line (solution 4) and increase the execution time, we think that as n increases, solution 4 became the fastest. 
+
+
+```{r}
+
+x=c(7,14,36,96,127)
+# Benchmark for input length 7
+x1_7 <- "xhesina"
+x2_7 <- "sinaxhe"
+benchmark_7 <- microbenchmark(
+  anagramSolution1(x1_7,x2_7),
+  anagramSolution2(x1_7,x2_7),
+  #check_anagram(x1_7,x2_7),
+  anagramSolution4(x1_7,x2_7),
+  times = 1000
+)
+
+# Benchmark for input length 14
+x1_14 <- "xhesinadavideq"
+x2_14 <- "davideqxhesina"
+benchmark_14 <- microbenchmark(
+  anagramSolution1(x1_14,x2_14),
+  anagramSolution2(x1_14,x2_14),
+  anagramSolution4(x1_14,x2_14),
+  times = 1000
+)
+
+# Benchmark for input length 36
+x1_36 <- "xhesinahitadavidegottilunduniversity"
+x2_36 <- "lunduniversitydavidegottixhesinahita"
+benchmark_36 <- microbenchmark(
+  anagramSolution1(x1_36,x2_36),
+  anagramSolution2(x1_36, x2_36),
+  anagramSolution4(x1_36, x2_36),
+  times = 1000
+)
+
+# Benchmark for input length 96
+x1_96 <- "studentsxhesinahitadavidegottierasmuslunduniversityprogrammingfordatasciencelaboratorycomputer"
+x2_96 <- "computerlaboratoryprogrammingfordatalunduniversitydavidegottixhesinahitasciencestudentserasmus"
+benchmark_96 <- microbenchmark(
+  anagramSolution1(x1_96,x2_96),
+  anagramSolution2(x1_96,x2_96),
+  anagramSolution4(x1_96,x2_96),
+  times = 1000
+)
+
+# Benchmark for input length 127
+x1_127 <- "hitastudentsxhesinahitadavidegottierasmuslunduniversityprogrammingfordatasciencelaboratorycomputerdavidexhesinaprogramminggotti"
+x2_127 <- "gottidavidexhesinaprogrammingcomputerlaboratoryprogrammingfordatalunduniversitydavidegottixhesinahitasciencestudentserasmushita"
+benchmark_127 <- microbenchmark(
+  anagramSolution1(x1_127,x2_127),
+  anagramSolution2(x1_127,x2_127),
+  anagramSolution4(x1_127,x2_127),
+  times = 1000
+)
+
+# Print the benchmark results
+print(benchmark_7)
+print(benchmark_14)
+print(benchmark_36)
+print(benchmark_96)
+print(benchmark_127)
+
+
+```
+
+In case of R if we consider the tables above we have that for n small (n=7) the second algorithm is more slower and the first and the fourth ar quite similar. For n large (n=127) we have that the results follow the theory, the fastest algorithm is the last.
+
+```{r}
+
+x15="mamma" #length 5
+x25="aammm"
+microbenchmark(check_anagram(x15,x25))
+#1.8 milliseconds
+
+x15="mamama" #length 6
+x25="aammam"
+microbenchmark(check_anagram(x15,x25))
+#14.9 milliseconds
+
+```
+
+In case of the third algorithm, if the length of the string is 5 it takes 1.8 milliseconds and in case of length 6 it takes 14.9 milliseconds, the time increase drastically. (The execution time can vary but still with length 6 is extremely very slow than length 5).
+
+```{r}
+
+y1_7=mean(microbenchmark( anagramSolution1(x1_7,x2_7))$time)/1000
+y1_14=mean(microbenchmark( anagramSolution1(x1_14,x2_14))$time)/1000
+y1_36=mean(microbenchmark( anagramSolution1(x1_36,x2_36))$time)/1000
+y1_96=mean(microbenchmark( anagramSolution1(x1_96,x2_96))$time)/1000
+y1_127=mean(microbenchmark( anagramSolution1(x1_127,x2_127))$time)/1000
+
+y1_values=c(y1_7, y1_14, y1_36, y1_96, y1_127)
+
+y2_7=mean(microbenchmark( anagramSolution2(x1_7,x2_7))$time)/1000
+y2_14=mean(microbenchmark( anagramSolution2(x1_14,x2_14))$time)/1000
+y2_36=mean(microbenchmark( anagramSolution2(x1_36,x2_36))$time)/1000
+y2_96=mean(microbenchmark( anagramSolution2(x1_96,x2_96))$time)/1000
+y2_127=mean(microbenchmark( anagramSolution2(x1_127,x2_127))$time)/1000
+
+y2_values=c(y2_7, y2_14, y2_36, y2_96, y2_127)
+
+
+y4_7=mean(microbenchmark( anagramSolution4(x1_7,x2_7))$time)/1000
+y4_14=mean(microbenchmark( anagramSolution4(x1_14,x2_14))$time)/1000
+y4_36=mean(microbenchmark( anagramSolution4(x1_36,x2_36))$time)/1000
+y4_96=mean(microbenchmark( anagramSolution4(x1_96,x2_96))$time)/1000
+y4_127=mean(microbenchmark( anagramSolution4(x1_127,x2_127))$time)/1000
+
+y4_values=c(y4_7, y4_14, y4_36, y4_96, y4_127)
+
+plot(x, y1_values, type="l", col="coral1" , xlab="Length of the word", ylab="Time in microseconds", main="Speed of the 3 algorithms")
+lines(x, y2_values, type="l", col="royalblue1")
+lines(x, y4_values, type="l", col="green3")
+legend( "topright",legend=c("Solution1", "Solution2", "Solution4"), col=c("coral1", "royalblue1", "green3") , pch=c(16,16), cex=0.8)
+
+```
+
+
+```{r}
+
+plot(x, y4_values, type="l", col="green3" , xlab="Length of the word", ylab="Time in microseconds", main="Speed of the 2 algorithms")
+lines(x, y2_values, type="l", col="royalblue1")
+legend( "topright",legend=c( "Solution2", "Solution4"), col=c( "royalblue1", "green3"), pch=c(16,16), cex=0.8)
+
+
+```
+
+```{python}
+#We choose randomly the strings in Python
+
+random_key = random.choice(list(anagrams_dict.keys()))
+random_value = random.choice(anagrams_dict[random_key])
+
+result1 = anagramSolution1(random_key, random_value)
+if result1:
+    print(f"{random_key} and {random_value} are anagrams.")
+else:
+    print(f"{random_key} and {random_value} are not anagrams.")
+
+result2 = anagramSolution2(random_key, random_value)
+if result2:
+    print(f"{random_key} and {random_value} are anagrams.")
+else:
+    print(f"{random_key} and {random_value} are not anagrams.")
+
+result3 = check_anagram(random_key, random_value)
+if result3:
+    print(f"{random_key} and {random_value} are anagrams.")
+else:
+    print(f"{random_key} and {random_value} are not anagrams.")
+
+    
+result4 = anagramSolution4(random_key, random_value)
+if result4:
+    print(f"{random_key} and {random_value} are anagrams.")
+else:
+    print(f"{random_key} and {random_value} are not anagrams.")
+
+```
+
+```{python}
+#Checking the time
+random.seed(42)
+time_result1 = timeit.timeit('anagramSolution1(random_key, random_value)', globals=globals(), number=1000)
+time_result2 = timeit.timeit('anagramSolution2(random_key, random_value)', globals=globals(), number=1000)
+time_result3 = timeit.timeit('check_anagram(random_key, random_value)', globals=globals(), number=1000)
+time_result4 = timeit.timeit('anagramSolution4(random_key, random_value)', globals=globals(), number=1000)
+
+# Print the results
+print("Time Result 1:", time_result1)
+print("Time Result 2:", time_result2)
+print("Time Result 3:", time_result3)
+print("Time Result 4:", time_result4)
+
+data1 = {
+    'Function': ['anagramSolution1', 'anagramSolution2', 'check_anagram', 'anagramSolution4'],
+    'Execution Time': [time_result1, time_result2, time_result3, time_result4]
+}
+
+df1 = pd.DataFrame(data1)
+
+# Display the table
+print(df1)
+
+```
+
+```{r}
+#We choose the strings in R
+
+random_key <- sample(names(anagrams_dict), 1)
+random_value <- sample(anagrams_dict[[random_key]], 1)
+
+
+result1 <- anagramSolution1(random_key, random_value)
+
+if (result1) {
+  cat(paste(random_key, "and", random_value, "are anagrams.\n"))
+} else {
+  cat(paste(random_key, "and", random_value, "are not anagrams.\n"))
+}
+
+result2 <- anagramSolution2(random_key, random_value)
+if (result2) {
+  cat(paste(random_key, "and", random_value, "are anagrams.\n"))
+} else {
+  cat(paste(random_key, "and", random_value, "are not anagrams.\n"))
+}
+
+result3 <- check_anagram(random_key, random_value)
+if (result3) {
+  cat(paste(random_key, "and", random_value, "are anagrams.\n"))
+} else {
+  cat(paste(random_key, "and", random_value, "are not anagrams.\n"))
+}
+
+result4 <- anagramSolution4(random_key, random_value)
+
+if (result4) {
+  cat(paste(random_key, "and", random_value, "are anagrams.\n"))
+} else {
+  cat(paste(random_key, "and", random_value, "are not anagrams.\n"))
+}
+
+```
+
+
+```{r}
+#Checking the time
+
+benchmark_result1 <- microbenchmark(
+  anagramSolution1(random_key, random_value),
+  times = 1000)
+print(benchmark_result1)
+
+benchmark_result2 <- microbenchmark(
+  anagramSolution2(random_key, random_value),
+  times = 1000)
+print(benchmark_result2)
+
+
+benchmark_result3 <- microbenchmark(
+  check_anagram(random_key, random_value),
+  times = 1000)
+print(benchmark_result3)
+
+benchmark_result4 <- microbenchmark(
+  anagramSolution4(random_key, random_value),
+  times = 1000)
+print(benchmark_result4)
+
+
+```
+
+
+
+## Conclusion:
+
+From the results we observe that in Python with small n (small words) it seems that the theory doesn't match the results, but as n increases it seems that the results are congruent.
+As regards R, even with small values of n, the last algorithm (solution 4) which has complexity O(n) turns out to be the fastest.
+If we compare the two software, we transform the microseconds outputs in R in such a way as to compare them with seconds, we find that Python is faster.
+
+
+
+
